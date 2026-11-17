@@ -1,5 +1,5 @@
 def test_all_module_pages(client):
-    for path in ['/budgets', '/eligibility', '/weights', '/allocations', '/remainders', '/runs']:
+    for path in ['/budgets', '/eligibility', '/weights', '/allocations', '/remainders', '/runs', '/settlement']:
         response = client.get(path)
         assert response.status_code == 200
         assert "panel" in response.text

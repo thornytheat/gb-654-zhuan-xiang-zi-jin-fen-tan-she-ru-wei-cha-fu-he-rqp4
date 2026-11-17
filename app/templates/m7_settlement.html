@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% block content %}
+<div class="grid module-7"><section class="panel panel--primary"><div class="panel__head"><h2>尾差结算裁决（样例预览）</h2><span class="panel__meta">M7 · {{ data.status|default('READY') }} · {{ data.fund_year }}/{{ data.batch_id }}</span></div><div class="panel__body panel--body--scroll"><table class="ledger"><thead><tr><th>项目</th><th>精确份额</th><th>截底</th><th>尾分</th><th>实发</th><th>封顶</th><th>结前欠额</th><th>本次差额</th><th>结后欠额</th><th>原因码</th></tr></thead><tbody>
+{% for line in data.lines %}<tr><td>{{ line.project_id }}</td><td class="num">{{ line.raw_amount }}</td><td class="num">{{ line.base_amount }}</td><td class="num">{{ line.tail_cents }}</td><td class="num">{{ line.amount }}</td><td class="num">{{ line.cap }}</td><td class="num">{{ data.deficit_before[line.project_id] }}</td><td class="num">{{ data.deficit_delta[line.project_id] }}</td><td class="num">{{ data.deficit_after[line.project_id] }}</td><td>{{ line.reason }}{% if line.parked %} · 暂存{% endif %}</td></tr>{% endfor %}
+</tbody></table></div></section>
+<div class="stack"><section class="panel"><div class="panel__head"><h2>对账</h2><span class="panel__meta">{{ data.reason|default('OK') }}</span></div><div class="panel__body bars"><i style="--v:60%"></i><i style="--v:44%"></i></div><p class="panel__meta">已分 {{ data.allocated_total }} / 批复 {{ data.approved_total }} / 未分 {{ data.unallocated }} · 版本 {{ data.version_before }} → {{ data.version_after }}</p></section>
+<section class="panel"><div class="panel__head"><h2>本次动作</h2><span class="panel__meta">/api/settlement/preview · /commit</span></div><div class="panel__body"><button class="btn btn--primary" data-endpoint="/api/settlement/preview">预览（不占欠额）</button><button class="btn" id="m7-commit">按当前版本结算</button><pre class="result" id="m7-result">等待运行</pre></div></section></div></div>
+<script>
+document.querySelector("#m7-commit")?.addEventListener("click", async () => {
+  const out = document.querySelector("#m7-result");
+  out.textContent = "运行中";
+  try {
+    const pv = await fetch("/api/settlement/preview", {method: "POST", headers: {"content-type": "application/json"}, body: "{}"});
+    const preview = await pv.json();
+    const res = await fetch("/api/settlement/commit", {method: "POST", headers: {"content-type": "application/json"}, body: JSON.stringify({...preview.echo, expected_version: preview.version_before})});
+    out.textContent = await res.text();
+  } catch (e) { out.textContent = "请求失败，请重试"; }
+});
+</script>
+{% endblock %}
